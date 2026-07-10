@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Embarkation List Generator - Go Nordic Cruiseline</title>
+    <script src="qrcode.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0c1929 0%, #1a3a5c 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+        .header {
+            background: #fff;
+            padding: 20px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.2);
+        }
+        .logo {
+            height: 50px;
+        }
+        .header-title {
+            color: #1a3a5c;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        .card {
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .card-title {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(255,255,255,0.6);
+            margin-bottom: 15px;
+        }
+        textarea {
+            width: 100%;
+            height: 180px;
+            padding: 20px;
+            font-size: 14px;
+            font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            background: rgba(0,0,0,0.3);
+            color: #fff;
+            outline: none;
+            resize: vertical;
+            transition: all 0.3s;
+        }
+        textarea:focus {
+            border-color: #c41e3a;
+            background: rgba(0,0,0,0.4);
+        }
+        textarea::placeholder {
+            color: rgba(255,255,255,0.3);
+        }
+        .btn-row {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        button {
+            padding: 14px 32px;
+            font-size: 15px;
+            font-weight: 600;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #c41e3a 0%, #8b1528 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(196, 30, 58, 0.4);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(196, 30, 58, 0.5);
+        }
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.15);
+        }
+        button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        .stats {
+            display: none;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 25px;
+            background: linear-gradient(135deg, #c41e3a 0%, #8b1528 100%);
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        .stats.visible {
+            display: flex;
+        }
+        .stats-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+        }
+        .stat-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.8;
+        }
+        .stats-time {
+            font-size: 13px;
+            opacity: 0.8;
+        }
+        .controls {
+            display: none;
+            gap: 12px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .controls.visible {
+            display: flex;
+        }
+        .search-input {
+            flex: 1;
+            min-width: 200px;
+            padding: 11px 16px;
+            font-size: 14px;
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            background: rgba(0,0,0,0.3);
+            color: #fff;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .search-input::placeholder {
+            color: rgba(255,255,255,0.35);
+        }
+        .search-input:focus {
+            border-color: #c41e3a;
+        }
+        .sort-btns {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .btn-sort {
+            padding: 10px 18px;
+            font-size: 13px;
+            font-weight: 600;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            cursor: pointer;
+            background: rgba(255,255,255,0.08);
+            color: white;
+            transition: all 0.2s;
+        }
+        .btn-sort:hover {
+            background: rgba(255,255,255,0.15);
+        }
+        .btn-sort.active {
+            background: linear-gradient(135deg, #c41e3a 0%, #8b1528 100%);
+            border-color: transparent;
+            box-shadow: 0 3px 10px rgba(196,30,58,0.4);
+        }
+        .passenger-list {
+            display: none;
+        }
+        .passenger-list.visible {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+        }
+        .passenger {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: rgba(255,255,255,0.05);
+            padding: 15px;
+            border: 1px solid rgba(255,255,255,0.2);
+            margin: 0;
+            min-height: 110px;
+            position: relative;
+        }
+        .passenger:nth-child(4n+1),
+        .passenger:nth-child(4n+2) {
+            background: rgba(255,255,255,0.08);
+        }
+        .passenger-num {
+            position: absolute;
+            top: 5px;
+            right: 8px;
+            font-size: 10px;
+            font-weight: 600;
+            color: rgba(255,255,255,0.5);
+        }
+        .passenger-qr {
+            background: white;
+            padding: 3px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .passenger-info {
+            flex: 1;
+            position: relative;
+            padding-top: 3px;
+        }
+        .passenger-name {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            padding-right: 25px;
+        }
+        .passenger-codes {
+            display: flex;
+            gap: 15px;
+        }
+        .passenger-code-block {
+            display: flex;
+            flex-direction: column;
+        }
+        .passenger-code-label {
+            font-size: 8px;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.4);
+            margin-bottom: 1px;
+        }
+        .passenger-code-value {
+            font-family: 'SF Mono', Monaco, monospace;
+            color: rgba(255,255,255,0.9);
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        /* Print styles - credit card size: 85.6mm x 54mm */
+        @media print {
+            @page {
+                margin: 10mm;
+            }
+            body {
+                background: white !important;
+                color: black !important;
+            }
+            .header, .card, .stats, .controls {
+                display: none !important;
+            }
+            .container {
+                padding: 0;
+                max-width: 100%;
+            }
+            .passenger-list.visible {
+                display: grid !important;
+                grid-template-columns: 85.6mm 85.6mm;
+                gap: 0;
+            }
+            .passenger {
+                background: white !important;
+                border: 1px solid #000 !important;
+                break-inside: avoid;
+                width: 85.6mm;
+                height: 54mm;
+                padding: 3mm;
+                box-sizing: border-box;
+            }
+            .passenger:nth-child(4n+1),
+            .passenger:nth-child(4n+2) {
+                background: #f5f5f5 !important;
+            }
+            .passenger-qr {
+                padding: 1px;
+            }
+            .passenger-qr img,
+            .passenger-qr canvas {
+                width: 22mm !important;
+                height: 22mm !important;
+            }
+            .passenger-num {
+                color: #888 !important;
+                font-size: 8pt;
+                top: 2mm;
+                right: 3mm;
+            }
+            .passenger-name {
+                color: black !important;
+                font-size: 9pt;
+                font-weight: bold;
+                margin-bottom: 2mm;
+            }
+            .passenger-codes {
+                gap: 5mm;
+            }
+            .passenger-code-label {
+                color: #666 !important;
+                font-size: 6pt;
+            }
+            .passenger-code-value {
+                color: black !important;
+                font-size: 8pt;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="logo.png" alt="Go Nordic Cruiseline" class="logo">
+        <div class="header-title">Embarkation List Generator</div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <div class="card-title">Paste Embarkation Data</div>
+            <textarea id="dataInput" placeholder="Paste embarkation window data here...
+
+The system will automatically extract:
+• 9-digit Bcard numbers
+• 6-digit Booking numbers
+• Passenger names (in CAPS)"></textarea>
+
+            <div class="btn-row">
+                <button class="btn-primary" onclick="generateList()">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    Generate List
+                </button>
+                <button class="btn-secondary" onclick="clearAll()">Clear</button>
+                <button class="btn-secondary" id="printBtn" onclick="window.print()" disabled>
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                    Print
+                </button>
+            </div>
+        </div>
+
+        <div class="stats" id="stats">
+            <div class="stats-left">
+                <div class="stat-item">
+                    <div class="stat-value" id="passengerCount">0</div>
+                    <div class="stat-label">Passengers</div>
+                </div>
+            </div>
+            <div class="stats-time" id="timestamp"></div>
+        </div>
+
+        <div class="controls" id="controls">
+            <input class="search-input" id="searchInput" type="text" placeholder="Search by name..." oninput="filterAndRender()">
+            <div class="sort-btns">
+                <button class="btn-sort active" id="sortLastName" onclick="sortBy('last')">Sort by Last Name</button>
+                <button class="btn-sort" id="sortFirstName" onclick="sortBy('first')">Sort by First Name</button>
+                <button class="btn-sort" id="sortBcard" onclick="sortBy('bcard')">Sort by Bcard No</button>
+            </div>
+        </div>
+
+        <div class="passenger-list" id="passengerList"></div>
+    </div>
+
+    <script>
+        function extractPassengers(rawData) {
+            const passengers = [];
+
+            // Normalize all dash variants (en dash, em dash, etc.) to ASCII hyphen
+            rawData = rawData.replace(/[\u2010-\u2015\u2212\uFE58\uFE63\uFF0D]/g, '-');
+
+            // Find all 9-digit Bcard numbers
+            const bcardNos = rawData.match(/\b\d{9}\b/g) || [];
+
+            // Find all 6-digit booking numbers
+            const bookingNos = rawData.match(/\b\d{6}\b/g) || [];
+
+            // Find names in CAPS at end of description lines
+            const lines = rawData.split('\n');
+            const names = [];
+            const portCodes = [];
+
+            for (const line of lines) {
+                const trimmed = line.trim();
+                // Match 4-letter port codes on their own line (e.g. OSCH, CHOS)
+                if (/^[A-Z]{4}$/.test(trimmed)) {
+                    portCodes.push(trimmed);
+                }
+                // Match uppercase names at end of line
+                const nameMatch = line.match(/([A-ZÆØÅÄÖ][A-ZÆØÅÄÖ.\-]*(?:\s+-?\s*[A-ZÆØÅÄÖ][A-ZÆØÅÄÖ.\-]*)+)\s*\.{0,3}\s*$/);
+                if (nameMatch) {
+                    names.push(nameMatch[1].trim());
+                }
+            }
+
+            // Pair Bcard numbers with booking numbers and names
+            for (let i = 0; i < bcardNos.length; i++) {
+                passengers.push({
+                    bcardNo: bcardNos[i],
+                    bookingNo: bookingNos[i] || '',
+                    name: names[i] || 'UNKNOWN',
+                    portCode: portCodes[i] || '',
+                    number: i + 1
+                });
+            }
+
+            return passengers;
+        }
+
+        let allPassengers = [];
+        let currentSort = 'last';
+
+        function getLastName(name) {
+            return name.split(/\s+/)[0] || name;
+        }
+
+        function getFirstName(name) {
+            const parts = name.split(/\s+/);
+            return parts.length > 1 ? parts.slice(1).join(' ') : name;
+        }
+
+        function sortPassengers(list, mode) {
+            const sorted = [...list];
+            if (mode === 'last') {
+                sorted.sort((a, b) => getLastName(a.name).localeCompare(getLastName(b.name), 'no'));
+            } else if (mode === 'first') {
+                sorted.sort((a, b) => getFirstName(a.name).localeCompare(getFirstName(b.name), 'no'));
+            } else if (mode === 'bcard') {
+                sorted.sort((a, b) => a.bcardNo.localeCompare(b.bcardNo));
+            }
+            return sorted;
+        }
+
+        function filterAndRender() {
+            const query = document.getElementById('searchInput').value.trim().toLowerCase();
+            let list = allPassengers;
+            if (query) {
+                list = list.filter(p => p.name.toLowerCase().includes(query));
+            }
+            list = sortPassengers(list, currentSort);
+            renderPassengers(list);
+        }
+
+        function sortBy(mode) {
+            currentSort = mode;
+            document.querySelectorAll('.btn-sort').forEach(b => b.classList.remove('active'));
+            document.getElementById(mode === 'last' ? 'sortLastName' : mode === 'first' ? 'sortFirstName' : 'sortBcard').classList.add('active');
+            filterAndRender();
+        }
+
+        function renderPassengers(list) {
+            const listDiv = document.getElementById('passengerList');
+            listDiv.innerHTML = '';
+            list.forEach((p, idx) => {
+                const num = idx + 1;
+                const div = document.createElement('div');
+                div.className = 'passenger';
+                div.innerHTML = `
+                    <div class="passenger-qr" id="qr-${p.bcardNo}"></div>
+                    <div class="passenger-info">
+                        <div class="passenger-num">#${num}</div>
+                        <div class="passenger-name">${p.name}</div>
+                        <div class="passenger-codes">
+                            <div class="passenger-code-block">
+                                <div class="passenger-code-label">Bcard No</div>
+                                <div class="passenger-code-value">${p.bcardNo}</div>
+                            </div>
+                            <div class="passenger-code-block">
+                                <div class="passenger-code-label">Booking</div>
+                                <div class="passenger-code-value">${p.bookingNo}</div>
+                            </div>
+                            ${p.portCode ? `<div class="passenger-code-block">
+                                <div class="passenger-code-label">Port</div>
+                                <div class="passenger-code-value">${p.portCode}</div>
+                            </div>` : ''}
+                        </div>
+                    </div>
+                `;
+                listDiv.appendChild(div);
+
+                new QRCode(document.getElementById(`qr-${p.bcardNo}`), {
+                    text: p.bcardNo,
+                    width: 85,
+                    height: 85,
+                    colorDark: '#000000',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+            });
+        }
+
+        function generateList() {
+            const rawData = document.getElementById('dataInput').value;
+            allPassengers = extractPassengers(rawData);
+
+            if (allPassengers.length === 0) {
+                alert('No passengers found. Make sure data contains 9-digit EMB codes.');
+                return;
+            }
+
+            document.getElementById('stats').classList.add('visible');
+            document.getElementById('passengerCount').textContent = allPassengers.length;
+            document.getElementById('timestamp').textContent = new Date().toLocaleString('no-NO');
+            document.getElementById('controls').classList.add('visible');
+            document.getElementById('passengerList').classList.add('visible');
+            document.getElementById('searchInput').value = '';
+            currentSort = 'last';
+            document.querySelectorAll('.btn-sort').forEach(b => b.classList.remove('active'));
+            document.getElementById('sortLastName').classList.add('active');
+
+            filterAndRender();
+            document.getElementById('printBtn').disabled = false;
+        }
+
+        function clearAll() {
+            document.getElementById('dataInput').value = '';
+            document.getElementById('stats').classList.remove('visible');
+            document.getElementById('controls').classList.remove('visible');
+            document.getElementById('passengerList').classList.remove('visible');
+            document.getElementById('passengerList').innerHTML = '';
+            document.getElementById('printBtn').disabled = true;
+            allPassengers = [];
+        }
+    </script>
+</body>
+</html>

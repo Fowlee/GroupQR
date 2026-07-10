@@ -1,0 +1,21 @@
+{
+  "name": "groupqr",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "qr-code",
+    "embarkation",
+    "cruise"
+  ],
+  "author": "",
+  "license": "ISC",
+  "description": "QR code embarkation list generator for group check-in",
+  "dependencies": {
+    "pdfkit": "^0.17.2",
+    "qrcode": "^1.5.4"
+  }
+}

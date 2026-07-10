@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Environment variables (never commit real secrets)
+.env
+.env.local
+.env.*.local
+
+# Generated output — these PDFs are built from pasted embarkation data
+# and may contain real passenger names / Bcard / booking numbers.
+*.pdf
+
+# Go Nordic Cruiseline branding — not distributed publicly, add your own
+# locally if you need the branded header/PDF (see README).
+logo.png
+
+# OS files
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
